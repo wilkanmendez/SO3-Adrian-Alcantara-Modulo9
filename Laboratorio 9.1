@@ -1,0 +1,22 @@
+Comandos utilizados, práctica laboratorio 9.1: Infraestructura como Código (IaC) y Automatización.
+
+Instalación de Webmin
+
+============================================
+
+
+sudo tee /etc/yum.repos.d/webmin.repo<<EOF
+[Webmin]
+name=Webmin Distribution Neutral
+baseurl=https://download.webmin.com/download/yum
+enabled=1
+gpgcheck=1
+gpgkey=https://download.webmin.com/jcameron-key.asc
+EOF
+
+sudo dnf install webmin -y
+
+sudo firewall-cmd --permanent --add-port=10000/tcp
+sudo firewall-cmd --reload
+
+https://192.168.100.10:10000
