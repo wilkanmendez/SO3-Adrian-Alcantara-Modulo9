@@ -1,0 +1,75 @@
+Comandos utilizados, práctica laboratorio 9.3: Infraestructura como Código (IaC) y Automatización.
+
+Instalación y Configuración de Ansible
+============================================
+
+#Instalar Ansible en RHEL Linux (VM-Server) y dependencias para conectar con Windows:
+
+sudo dnf install epel-release -y
+sudo dnf install ansible -y
+pip install pywinrm
+pip3 install pywinrm        
+#Si no tienes pip3, instálalo con: 
+sudo dnf install python3-pip -y
+
+ansible --version
+
+#Crear usuario 'ansible' en ambas máquinas cliente.
+
+#En la VM Linux (cliente en DigitalOcean):
+sudo useradd -m ansible
+sudo passwd ansible
+sudo usermod -aG wheel ansible
+#Permitir sudo sin contraseña (opcional):
+echo 'ansible ALL=(ALL) NOPASSWD:ALL' | sudo tee /etc/sudoers.d/ansible
+
+#En la VM Windows:
+Settings >Accounts >Other users >Add someone else to this pc >I don’t have this person’s sign-in information >Add user without a Microsoft Account.
+
+#Luego de colocar el nombre (ansible) y contraseña, cambia el tipo de cuenta y seleccionar 'Administrador'.
+
+#En nuestro servidor RHEL Linux, ejecutamos:
+cat ~/.ssh/id_rsa.pub
+
+#Copiamos la salida del comando anterior (Si no existe, créala con ssh-keygen) y la copiamos al cliente.
+
+ssh-copy-id ansible@IP_DEL_CLIENTE_LINUX
+#(Reemplaza IP_DEL_CLIENTE_LINUX por la IP de la máquina de DigitalOcean)
+
+#Configurar WinRM en Windows 10
+
+#Cambiar el perfil de red a 'Privado':
+Settings > Network & Internet >Ethernet > Network profile >Private.
+
+# Asegúrate de que el servicio 'Windows Remote Management (WS-Management)' esté iniciado y en modo automático.
+Win + R > services.msc > Windows Remote Management (WS-Management)> Startup type: automatic >Service status: Running (start)
+
+#Abrir PowerShell como administrador.
+#Ejecutar:
+
+winrm quickconfig
+winrm set winrm/config/service/auth '@{Basic="true"}'
+winrm set winrm/config/service '@{AllowUnencrypted="true"}'
+winrm set winrm/config/listener?Address=*+Transport=HTTP '@{Port="5985"}'
+
+Set-Item -Path WSMan:\localhost\Service\AllowUnencrypted -Value $true
+Set-Item -Path WSMan:\localhost\Service\Auth\Basic -Value $true
+
+#Crear inventario de Ansible (/etc/ansible/hosts) en el servidor Rocky.
+#Editar el archivo de inventario:
+
+sudo nano /etc/ansible/hosts
+
+#Ejemplo de contenido:
+
+[linux]
+cliente1 ansible_host=IP_DEL_CLIENTE_LINUX ansible_user=ansible ansible_ssh_private_key_file=~/.ssh/id_rsa ansible_become=true ansible_become_method=sudo
+
+[win]
+cliente2 ansible_host=IP_DEL_CLIENTE_WINDOWS ansible_user=ansible ansible_password=TU_CONTRASEÑA ansible_connection=winrm ansible_winrm_transport=basic ansible_port=5985 ansible_winrm_server_cert_validation=ignore
+
+#Reemplazar IP y contraseña según corresponda.
+
+#Probar conectividad con módulo ping
+ansible linux -m ping
+ansible win -m win_ping
