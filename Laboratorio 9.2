@@ -1,0 +1,78 @@
+Comandos utilizados, práctica laboratorio 9.2: Infraestructura como Código (IaC) y Automatización
+
+Despliegue de una VM con Terraform en DigitalOcean.
+
+============================================
+
+#Crear token de API en DigitalOcean
+> API >Generate New Token > Name (terraform-token) >Read and Write' (full access)>Generate Token.
+
+#Crear o subir la llave pública SSH
+>Settings >Security >Add SSH Key.
+
+#En nuestro servidor RHEL Linux, ejecutamos:
+   cat ~/.ssh/id_rsa.pub
+
+#Copiamos la salida del comando anterior (Si no existe, créala con ssh-keygen) y pégala en DigitalOcean.
+
+#Instalar Terraform en Rocky Linux
+sudo dnf install -y yum-utils
+sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
+sudo dnf install -y terraform
+
+terraform -version
+
+#Crear carpeta y archivo de configuración Terraform
+
+mkdir ~/terraform-digitalocean
+cd ~/terraform-digitalocean
+
+nano main.tf
+
+>
+   terraform {
+     required_providers {
+       digitalocean = {
+         source  = "digitalocean/digitalocean"
+         version = "~> 2.0"
+       }
+     }
+   }
+   provider "digitalocean" {
+     token = var.do_token
+   }
+   variable "do_token" {}
+
+
+#Crear archivo de variables para el token
+nano terraform.tfvars
+
+#Escribe tu token:
+do_token = "TU_TOKEN_DE_DIGITALOCEAN"
+
+#Inicializar Terraform
+terraform init
+
+#Crear la configuración del Droplet
+nano main.tf
+
+#Añade al final:
+   resource "digitalocean_droplet" "os3vm" {
+     image    = "ubuntu-22-04-x64"
+     name     = "OS3vm"
+     region   = "nyc1"
+     size     = "s-1vcpu-1gb"
+     ssh_keys = [ "TU_FINGERPRINT_DE_LA_LLAVE" ]
+   }
+
+
+#Validar configuración
+terraform validate
+
+#Desplegar la máquina virtual
+terraform apply
+
+#Validar la VM en el portal de DigitalOcean.
+
+#Por SSH (Reemplaza DIRECCION_IP con la IP pública del droplet)
+   ssh root@DIRECCION_IP
